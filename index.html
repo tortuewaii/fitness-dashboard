@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Fitness Dashboard</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
   :root{
     --ink:#EDEAE2;
@@ -241,6 +242,15 @@
       </div>
     </section>
 
+    <section>
+      <div class="section-label">สำรองข้อมูล</div>
+      <div class="card">
+        <p style="margin:0 0 12px;font-size:13.5px;color:var(--muted);">ดาวน์โหลดข้อมูลน้ำหนักที่เล่น + ประวัติอาการทั้งหมด เป็นไฟล์ Excel เก็บสำรองไว้ หรือเอาไปทำสรุปต่อได้</p>
+        <button class="injury-save-btn" id="exportBtn" style="width:100%;">📊 ส่งออกข้อมูลเป็น Excel</button>
+        <span class="log-saved-msg" id="exportMsg" style="display:block;margin-top:8px;text-align:center;"></span>
+      </div>
+    </section>
+
   </div>
 
   <!-- ===================== LIBRARY ===================== -->
@@ -472,66 +482,10 @@
   const injSaveBtn = document.getElementById('injSaveBtn');
   const injSavedMsg = document.getElementById('injSavedMsg');
 
+  // เก็บเป็น JSON array แทนการต่อสตริงด้วย | และ \n เพื่อป้องกันข้อมูลพังตอน
+  // ผู้ใช้พิมพ์ขึ้นบรรทัดใหม่ในช่อง "รายละเอียด" (บั๊กเดิมที่ทำให้ข้อมูลหาย)
   function parseInjuryLog(raw){
     if(!raw) return [];
-    return raw.split('\n').filter(Boolean).map(line => {
-      const [date, bodypart, severity, ...noteParts] = line.split('|');
-      return { date, bodypart, severity, note: noteParts.join('|') };
-    });
-  }
-
-  function serializeInjuryLog(entries){
-    return entries.map(e => [e.date, e.bodypart, e.severity, e.note].join('|')).join('\n');
-  }
-
-  function renderInjuryList(entries){
-    if(!entries.length){
-      injuryListEl.innerHTML = '<div class="empty-note">ยังไม่มีบันทึกอาการ</div>';
-      return;
-    }
-    const sorted = entries.slice().sort((a,b) => new Date(b.date) - new Date(a.date));
-    injuryListEl.innerHTML = sorted.map(e =>
-      '<div class="injury-entry">' +
-        '<div class="meta"><span>' + formatDate(e.date) + '</span><span class="sev-badge sev-' + e.severity + '">' + e.severity + '</span></div>' +
-        '<div><b>' + e.bodypart + '</b></div>' +
-        (e.note ? '<div style="margin-top:4px;color:var(--muted);">' + e.note + '</div>' : '') +
-      '</div>'
-    ).join('');
-  }
-
-  async function loadInjuryLog(){
-    const raw = await tryGet(INJURY_KEY);
-    const entries = parseInjuryLog(raw);
-    renderInjuryList(entries);
-    return entries;
-  }
-
-  loadInjuryLog();
-
-  injSaveBtn.addEventListener('click', async () => {
-    const bodypart = document.getElementById('injBodypart').value.trim();
-    const severity = document.getElementById('injSeverity').value;
-    const note = document.getElementById('injNote').value.trim();
-    if(!bodypart){
-      document.getElementById('injBodypart').focus();
-      return;
-    }
-    const entries = await loadInjuryLog();
-    entries.push({ date: new Date().toISOString(), bodypart, severity, note });
-    const payload = serializeInjuryLog(entries);
-    const ok = await trySet(INJURY_KEY, payload);
-    if(!ok) sessionCache[INJURY_KEY] = payload;
-
-    injSavedMsg.textContent = ok ? 'บันทึกแล้ว ✓' : 'บันทึกชั่วคราว (จะหายถ้าปิดหน้านี้)';
-    injSavedMsg.style.color = ok ? 'var(--teal)' : 'var(--amber)';
-    injSavedMsg.style.display = 'inline';
-    setTimeout(() => { injSavedMsg.style.display = 'none'; }, 3000);
-
-    document.getElementById('injBodypart').value = '';
-    document.getElementById('injNote').value = '';
-    renderInjuryList(entries);
-  });
-</script>
-
-</body>
-</html>
+    // รูปแบบใหม่: JSON array
+    try{
+      const parsed = JSON.parse(raw
