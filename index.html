@@ -105,6 +105,8 @@
   .goal-card p{margin:0;font-size:14.5px;}
 
   table{width:100%;border-collapse:collapse;font-size:13.5px;}
+  .table-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch;}
+  .table-wrap table{min-width:340px;}
   th{
     text-align:left;color:var(--muted);font-weight:500;font-size:11.5px;
     text-transform:uppercase;letter-spacing:0.06em;padding:6px 8px;
@@ -278,15 +280,15 @@
     <section>
       <div class="section-label">ตารางรายสัปดาห์</div>
       <div class="card">
-        <table>
-          <tr><th>วัน</th><th>กิจกรรม</th><th>เวลา</th></tr>
-          <tr><td>จันทร์</td><td>🎽 Band Day 2 ที่บ้าน (หลัง+ไหล่+ก้น)</td><td>~20 นาที</td></tr>
-          <tr><td>อังคาร</td><td>🏸 แบดมินตัน</td><td>19:00-21:00</td></tr>
-          <tr><td>พุธ</td><td>😴 พักเต็มที่</td><td>—</td></tr>
-          <tr><td>พฤหัส/ศุกร์</td><td>🏋️ ฟิตเนส (สลับ A/B ทุกสัปดาห์)</td><td>~45-70 นาที</td></tr>
-          <tr><td>เสาร์</td><td>🎽 Band Day 1 (อก+แขน+Core) + 🏸 แบด</td><td>Band กลางวัน / แบด 16:00-17:00</td></tr>
-          <tr><td>อาทิตย์</td><td>😴 พักเต็มที่</td><td>—</td></tr>
-        </table>
+        <div class="table-wrap"><table>
+          <tr><th>วัน</th><th>กิจกรรม</th></tr>
+          <tr><td>จันทร์</td><td>🎽 Band Day 2 ที่บ้าน (หลัง+ไหล่+ก้น)<br><span class="section-sub" style="margin:2px 0 0;">~20 นาที</span></td></tr>
+          <tr><td>อังคาร</td><td>🏸 แบดมินตัน<br><span class="section-sub" style="margin:2px 0 0;">19:00-21:00</span></td></tr>
+          <tr><td>พุธ</td><td>😴 พักเต็มที่</td></tr>
+          <tr><td>พฤหัส/<br>ศุกร์</td><td>🏋️ ฟิตเนส (สลับ A/B ทุกสัปดาห์)<br><span class="section-sub" style="margin:2px 0 0;">~45-70 นาที</span></td></tr>
+          <tr><td>เสาร์</td><td>🎽 Band Day 1 (อก+แขน+Core) + 🏸 แบด<br><span class="section-sub" style="margin:2px 0 0;">Band กลางวัน · แบด 16:00-17:00</span></td></tr>
+          <tr><td>อาทิตย์</td><td>😴 พักเต็มที่</td></tr>
+        </table></div>
         <div class="section-sub" style="margin:12px 0 0;">
           <b>ทำไมสลับ Band Day:</b> เดิม Day 1 อยู่จันทร์ Day 2 อยู่เสาร์ แต่ Day 2 มีท่ากดขาหนีบหนัก (Squat/Glute Bridge/Clamshell) ถ้าติดกับฟิตเนสวันศุกร์ที่เพิ่งเล่นขาหนักมา เสี่ยงกดขาหนีบซ้ำตอนยังไม่ฟื้น เลยย้าย Day 2 ไปจันทร์แทน (ศุกร์→เสาร์→อาทิตย์พัก→จันทร์ = ห่าง 3 วันเต็ม) ส่วนเสาร์เปลี่ยนเป็น Day 1 (upper อย่างเดียว ไม่มีท่าขา)
         </div>
@@ -336,13 +338,13 @@
     <section>
       <div class="section-label">โซน Heart Rate อ้างอิง (จากข้อมูลจริง)</div>
       <div class="card">
-        <table>
+        <div class="table-wrap"><table>
           <tr><th>โซน</th><th>ช่วง bpm</th><th>ตัวอย่างจริง</th></tr>
           <tr><td><span class="dot" style="background:#5FA8A0;"></span>Recovery</td><td>~95-115</td><td>Pilates 102, เดินชัน 12/สปีด 3 = 126, Strength (band) = 106</td></tr>
           <tr><td><span class="dot" style="background:#7FC29A;"></span>Fat-burning</td><td>~115-140</td><td>เวทที่ฟิตเนส = 110, ว่ายน้ำ 500m เฉลี่ย 118-122</td></tr>
           <tr><td><span class="dot" style="background:#D9A441;"></span>Aerobic</td><td>~140-155</td><td>ยังไม่มีข้อมูลจริงในช่วงนี้</td></tr>
           <tr><td><span class="dot" style="background:#C4694F;"></span>Anaerobic</td><td>155+</td><td>Elliptical (หนักไปหลังเวท+พิลาทิส) = 164, แบด 2 ชม. เฉลี่ย 127 (พีคสูงกว่า)</td></tr>
-        </table>
+        </table></div>
       </div>
     </section>
 
@@ -362,12 +364,12 @@
       <div class="section-label">ข้อสังเกต &amp; Recovery Time</div>
       <div class="card">
         <p style="margin:0 0 12px;font-size:13.5px;">ความหนักที่รู้สึกไม่ได้ขึ้นกับตัวเครื่อง/กิจกรรมอย่างเดียว แต่ขึ้นกับ<b>ความล้าสะสมจากกิจกรรมก่อนหน้าในวันเดียวกัน</b>ด้วย — ถ้าทำหลายกิจกรรมติดกันไม่มีช่วงพัก กิจกรรมสุดท้ายมักจะ HR พุ่งสูงเกินตั้งใจ แนะนำเว้นพัก 10-15 นาทีระหว่างกิจกรรมถ้าทำได้</p>
-        <table>
+        <div class="table-wrap"><table>
           <tr><th>Recovery time (Garmin/Huawei)</th><th>ระดับ</th></tr>
           <tr><td>ต่ำกว่า 5 ชม.</td><td>เบา — ทำกิจกรรมต่อได้ปกติ</td></tr>
           <tr><td>12 ชม.</td><td>ปานกลาง (เช่น หลังแบด 2 ชม.)</td></tr>
           <tr><td>37 ชม.+</td><td>หนักเกินคาด — พัก 1-2 วันก่อนออกกำลังกายหนักอีกครั้ง</td></tr>
-        </table>
+        </table></div>
       </div>
     </section>
 
@@ -431,6 +433,19 @@
           <div class="ex-row"><div class="ex-name">Band Bicep Curl</div><div class="ex-sets">3×12 · เหยียบยาง ม้วนแขนขึ้น ศอกแนบลำตัว</div></div>
           <div class="ex-row"><div class="ex-name">Band Triceps Extension</div><div class="ex-sets"><span class="tag caution-tag">เบามาก</span> 2×12 · เหนือศีรษะ สังเกตจุดที่เคยเจ็บ</div></div>
           <div class="ex-row"><div class="ex-name">Plank</div><div class="ex-sets">3×20-30 วิ · ไม่ใช้ยาง</div></div>
+        </div>
+      </div>
+
+      <div class="card accordion" data-accordion>
+        <div class="accordion-head" data-acc-toggle>
+          <h3>กิจกรรมคาร์ดิโอ/คลาส (ไม่มีเซ็ต)</h3>
+          <span class="accordion-arrow">▾</span>
+        </div>
+        <div class="accordion-body">
+          <div class="ex-row"><div class="ex-name">ตีแบด</div><div class="ex-sets">อังคาร 19:00-21:00 · เสาร์ 16:00-17:00</div></div>
+          <div class="ex-row"><div class="ex-name">ว่ายน้ำ</div><div class="ex-sets">เฉพาะสัปดาห์ที่เข้าฟิตเนสวันศุกร์ (แบบ B) · ฟรีสไตล์เบาๆ 15-20 นาที</div></div>
+          <div class="ex-row"><div class="ex-name">พิลาทิส</div><div class="ex-sets">เฉพาะสัปดาห์ที่เข้าฟิตเนสวันพฤหัส (แบบ A) · คลาส 45 นาที</div></div>
+          <div class="section-sub" style="margin:8px 0 0;">รายละเอียดเต็ม (ข้อควรระวังตอนว่ายน้ำ, spa pool) ดูที่แท็บภาพรวม → รายละเอียดวันฟิตเนส</div>
         </div>
       </div>
 
