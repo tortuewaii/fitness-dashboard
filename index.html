@@ -836,6 +836,10 @@
         </div>
       </div>
 
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;">
+        <label style="font-size:13px;color:var(--muted);white-space:nowrap;">มื้อที่จะเพิ่ม:</label>
+        <select id="foodQuickMealType" style="flex:1;padding:9px 10px;border-radius:8px;border:1px solid var(--line);background:var(--bg);color:var(--ink);font-size:14px;font-family:inherit;"></select>
+      </div>
       <input type="text" id="foodQuickSearch" placeholder="🔍 ค้นหาชื่ออาหารในรายการโปรด..." style="width:100%;padding:10px 12px;border-radius:8px;border:1px solid var(--line);background:var(--bg);color:var(--ink);font-size:14px;font-family:inherit;margin-bottom:12px;box-sizing:border-box;">
       <div id="foodQuickList"></div>
     </section>
@@ -1810,6 +1814,7 @@
 
   const MEAL_TYPES = ['มื้อเช้า','มื้อเที่ยง','มื้อเย็น','มื้อว่าง'];
   document.getElementById('foodMealType').innerHTML = MEAL_TYPES.map(m => '<option value="'+m+'">'+m+'</option>').join('');
+  document.getElementById('foodQuickMealType').innerHTML = MEAL_TYPES.map(m => '<option value="'+m+'">'+m+'</option>').join('');
 
   let selectedFoodDateKey = todayKey;
   const foodDateInput = document.getElementById('foodDateInput');
@@ -1971,8 +1976,9 @@
     if(addBtn){
       const f = foodCustom.find(x => x.id === addBtn.dataset.foodQuickAdd);
       if(!f) return;
+      const mealType = document.getElementById('foodQuickMealType').value || 'มื้อว่าง';
       const entries = ensureFoodDay(selectedFoodDateKey);
-      entries.push({ id: 'entry' + Date.now(), mealType: '', desc: f.name, kcal: f.kcal, protein: f.protein, fat: f.fat, carb: f.carb });
+      entries.push({ id: 'entry' + Date.now(), mealType, desc: f.name, kcal: f.kcal, protein: f.protein, fat: f.fat, carb: f.carb });
       await saveFoodLog();
       renderFoodSummary();
       renderFoodTodayList();
