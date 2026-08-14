@@ -1550,7 +1550,6 @@
   function renderHistory(){
     const el = document.getElementById('historyList');
     const days = Object.values(workoutDays)
-      .filter(d => d.date !== selectedDateKey)
       .filter(d => (d.exercises && d.exercises.length) || d.checkin.sleep || d.checkin.note || d.summary.note)
       .sort((a,b) => b.date.localeCompare(a.date));
     if(!days.length){
@@ -2366,6 +2365,23 @@
 
     const rawDays = await tryGet('workout-days');
     try{ workoutDays = rawDays ? JSON.parse(rawDays) : {}; }catch(e){ workoutDays = {}; }
+
+    // one-time patch: fill in Lat Pulldown sets for 14 ส.ค. 69 that were saved empty
+    (function patchLatPulldown0814(){
+      const d = workoutDays['2026-08-14'];
+      if(!d || !d.exercises) return;
+      const ex = d.exercises.find(x => x.name === 'Lat Pulldown');
+      if(!ex || !ex.sets) return;
+      let changed = false;
+      ex.sets.forEach(s => {
+        if(!s.reps && !s.weight){
+          s.reps = '15';
+          s.weight = '15';
+          changed = true;
+        }
+      });
+      if(changed) saveWorkoutDays();
+    })();
 
     const rawFoodLog = await tryGet('food-log');
     try{ foodLog = rawFoodLog ? JSON.parse(rawFoodLog) : {}; }catch(e){ foodLog = {}; }
