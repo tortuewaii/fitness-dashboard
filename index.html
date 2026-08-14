@@ -261,6 +261,19 @@
     font-size:11px;padding:2px 9px;border-radius:100px;background:rgba(95,168,160,0.18);
     color:var(--teal);margin-left:8px;
   }
+
+  /* ---- new: food tracking ---- */
+  .progress-row{margin-bottom:14px;}
+  .progress-row:last-child{margin-bottom:0;}
+  .progress-head{display:flex;justify-content:space-between;font-size:12.5px;margin-bottom:5px;}
+  .progress-head .val{color:var(--muted);}
+  .progress-track{height:8px;border-radius:100px;background:rgba(237,234,226,0.08);overflow:hidden;}
+  .progress-fill{height:100%;border-radius:100px;transition:width 0.2s;}
+  .food-item{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;}
+  .food-item-name{font-weight:600;font-size:14.5px;}
+  .food-item-macros{font-size:12.5px;color:var(--muted);margin-top:4px;}
+  .food-row-inline{display:flex;gap:8px;}
+  .food-row-inline > div{flex:1;}
 </style>
 </head>
 <body>
@@ -268,7 +281,7 @@
 <header>
   <div class="eyebrow">Fitness Project · พี่หวาย</div>
   <h1 class="display">บันทึกออกกำลังกาย</h1>
-  <p class="subtitle">เช็คอินร่างกาย บันทึกท่าที่เล่น ดูความก้าวหน้า และประวัติอาการ</p>
+  <p class="subtitle">เช็คอินร่างกาย บันทึกท่าที่เล่น ดูความก้าวหน้า ประวัติอาการ และมื้ออาหาร</p>
   <div id="libLoadWarning" style="display:none; margin-top:10px; padding:10px 14px; border-radius:10px; background:rgba(217,164,65,0.15); border:1px solid var(--amber); color:var(--amber); font-size:0.9rem;">
     ⚠️ โหลดกราฟ/ไฟล์ Excel ไม่สำเร็จ (เน็ตอาจไม่เสถียร) — ข้อมูลที่บันทึกยังปลอดภัยอยู่ในเครื่อง แต่กราฟ/ปุ่มส่งออก Excel อาจใช้ไม่ได้ ลองรีเฟรชหน้าใหม่อีกครั้งค่ะ
   </div>
@@ -279,6 +292,7 @@
   <button class="tab-btn" data-tab="library">แผน &amp; คลังท่า</button>
   <button class="tab-btn" data-tab="progress">บันทึกวันนี้</button>
   <button class="tab-btn" data-tab="injury">บันทึกอาการ</button>
+  <button class="tab-btn" data-tab="food">อาหาร</button>
 </div>
 
 <main>
@@ -768,6 +782,100 @@
       <div class="section-label">ประวัติอาการที่บันทึกไว้</div>
       <div id="injuryList"><div class="empty-note">กำลังโหลด...</div></div>
     </section>
+  </div>
+
+  <!-- ===================== FOOD ===================== -->
+  <div class="panel" data-panel="food">
+
+    <div class="goal-card">
+      <div class="label">เป้าหมายต่อวัน</div>
+      <p>แคลอรี่ ~1,550-1,650 kcal · โปรตีน 95-110 กรัม · ไขมัน 45-55 กรัม · คาร์บส่วนที่เหลือ (ไม่ใช้โปรตีนเสริม เอาจากอาหารจริงล้วนๆ)</p>
+    </div>
+
+    <section>
+      <div class="section-label">เลือกวันที่บันทึก</div>
+      <div class="card">
+        <div style="display:flex;gap:8px;align-items:center;">
+          <input type="date" id="foodDateInput" style="flex:1;padding:10px 12px;border-radius:8px;border:1px solid var(--line);background:var(--bg);color:var(--ink);font-size:14px;font-family:inherit;">
+          <button class="icon-btn" id="foodDateTodayBtn" style="padding:10px 14px;white-space:nowrap;">วันนี้</button>
+        </div>
+        <div class="section-sub" id="foodDateHint" style="margin:10px 0 0;"></div>
+      </div>
+    </section>
+
+    <section>
+      <div class="section-label">สรุปวันนี้<span class="today-badge" id="foodTodayBadge"></span></div>
+      <div class="card" id="foodSummaryCard"></div>
+    </section>
+
+    <section>
+      <div class="section-label">เพิ่มแบบเร็ว (รายการโปรด)</div>
+      <div class="section-sub">แตะ "+ เพิ่ม" เพื่อบันทึกลงมื้อวันนี้ทันที ไม่ต้องกรอกใหม่ทุกครั้ง</div>
+      <button class="add-lib-btn" id="foodQuickSeedBtn" style="border-style:solid;">📥 นำเข้ารายการที่กินประจำ</button>
+      <button class="add-lib-btn" id="foodQuickAddToggle">+ เพิ่มรายการโปรดใหม่</button>
+      <span class="log-saved-msg" id="foodQuickSeedMsg" style="display:block;text-align:center;margin:-4px 0 12px;"></span>
+
+      <div class="card" id="foodQuickAddForm" style="display:none;">
+        <div class="injury-form">
+          <div>
+            <label>ชื่อรายการ</label>
+            <input type="text" id="fqName" placeholder="เช่น ไข่ต้ม 1 ฟอง">
+          </div>
+          <div class="food-row-inline">
+            <div><label>แคลอรี่ (kcal)</label><input type="number" id="fqKcal"></div>
+            <div><label>โปรตีน (ก.)</label><input type="number" id="fqProtein"></div>
+          </div>
+          <div class="food-row-inline">
+            <div><label>ไขมัน (ก.)</label><input type="number" id="fqFat"></div>
+            <div><label>คาร์บ (ก.)</label><input type="number" id="fqCarb"></div>
+          </div>
+          <div style="display:flex;gap:8px;">
+            <button class="injury-save-btn" id="foodQuickSaveBtn" style="flex:1;">บันทึกรายการโปรด</button>
+            <button class="icon-btn" id="foodQuickCancelBtn" style="padding:11px 16px;">ยกเลิก</button>
+          </div>
+        </div>
+      </div>
+
+      <div id="foodQuickList"></div>
+    </section>
+
+    <section>
+      <div class="section-label">เพิ่มมื้ออาหาร</div>
+      <div class="card">
+        <div class="injury-form">
+          <div>
+            <label>มื้อ</label>
+            <select id="foodMealType"></select>
+          </div>
+          <div>
+            <label>รายการอาหาร</label>
+            <input type="text" id="foodDesc" placeholder="เช่น ผัดกะเพราหมูสับ 200g + ข้าว 1.5 ทัพพี">
+          </div>
+          <div class="food-row-inline">
+            <div><label>แคลอรี่ (kcal)</label><input type="number" id="foodKcal" placeholder="เช่น 740"></div>
+            <div><label>โปรตีน (ก.)</label><input type="number" id="foodProtein" placeholder="เช่น 41"></div>
+          </div>
+          <div class="food-row-inline">
+            <div><label>ไขมัน (ก.)</label><input type="number" id="foodFat" placeholder="เช่น 42"></div>
+            <div><label>คาร์บ (ก.)</label><input type="number" id="foodCarb" placeholder="เช่น 46"></div>
+          </div>
+          <div class="section-sub" style="margin:0;">ให้ Claude คำนวณตัวเลขในแชทก่อน แล้วมากรอกที่นี่ได้เลย</div>
+          <button class="injury-save-btn" id="foodSaveBtn">บันทึกมื้อนี้</button>
+          <span class="log-saved-msg" id="foodSavedMsg"></span>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <div class="section-label">มื้อที่บันทึกไว้ในวันนี้</div>
+      <div id="foodTodayList"></div>
+    </section>
+
+    <section>
+      <div class="section-label">ประวัติย้อนหลัง</div>
+      <div id="foodHistoryList"></div>
+    </section>
+
   </div>
 
 </main>
@@ -1680,6 +1788,283 @@
   });
 
   // ==================================================================
+  // FOOD LOG
+  // ==================================================================
+  let foodLog = {};      // dateKey -> [{id, mealType, desc, kcal, protein, fat, carb}]
+  let foodCustom = [];   // [{id, name, kcal, protein, fat, carb}]
+
+  function saveFoodLog(){ return trySet('food-log', JSON.stringify(foodLog)); }
+  function saveFoodCustom(){ return trySet('food-custom', JSON.stringify(foodCustom)); }
+
+  const FOOD_GOAL = { kcalMin:1550, kcalMax:1650, proteinMin:95, proteinMax:110, fatMin:45, fatMax:55 };
+
+  const DEFAULT_FOODS = [
+    { name:'ไข่ต้ม 1 ฟอง', kcal:65, protein:6.5, fat:4.5, carb:0.5 },
+    { name:'น้ำเต้าหู้ไม่หวาน 1 แก้ว (~250 มล.)', kcal:35, protein:7, fat:1, carb:1 },
+    { name:'โยเกิร์ตธรรมดา 200 กรัม', kcal:120, protein:10, fat:5, carb:10 },
+    { name:'ข้าวขาว 1 ทัพพี (~100 กรัมสุก)', kcal:130, protein:2, fat:0, carb:29 },
+    { name:'กะเพราหมูสับทำเอง 200 กรัม (ไม่รวมข้าว)', kcal:545, protein:38, fat:41, carb:3 }
+  ];
+
+  const MEAL_TYPES = ['มื้อเช้า','มื้อเที่ยง','มื้อเย็น','มื้อว่าง'];
+  document.getElementById('foodMealType').innerHTML = MEAL_TYPES.map(m => '<option value="'+m+'">'+m+'</option>').join('');
+
+  let selectedFoodDateKey = todayKey;
+  const foodDateInput = document.getElementById('foodDateInput');
+  foodDateInput.value = selectedFoodDateKey;
+  foodDateInput.max = todayKey;
+
+  function ensureFoodDay(dateKey){
+    if(!foodLog[dateKey]) foodLog[dateKey] = [];
+    return foodLog[dateKey];
+  }
+
+  function refreshFoodDateUI(){
+    const badge = document.getElementById('foodTodayBadge');
+    const hint = document.getElementById('foodDateHint');
+    if(selectedFoodDateKey === todayKey){
+      badge.textContent = 'วันนี้';
+      hint.textContent = 'กำลังบันทึกของวันนี้';
+    } else {
+      badge.textContent = formatDateKeyThai(selectedFoodDateKey);
+      hint.textContent = '⏪ กำลังแก้ไขข้อมูลย้อนหลังของวันที่ ' + formatDateKeyThai(selectedFoodDateKey);
+    }
+  }
+
+  function switchToFoodDate(dateKey){
+    selectedFoodDateKey = dateKey;
+    foodDateInput.value = dateKey;
+    refreshFoodDateUI();
+    renderFoodSummary();
+    renderFoodTodayList();
+    renderFoodHistory();
+  }
+
+  foodDateInput.addEventListener('change', () => {
+    if(!foodDateInput.value) return;
+    switchToFoodDate(foodDateInput.value);
+  });
+  document.getElementById('foodDateTodayBtn').addEventListener('click', () => switchToFoodDate(todayKey));
+  refreshFoodDateUI();
+
+  function computeDayTotals(dateKey){
+    const entries = foodLog[dateKey] || [];
+    return entries.reduce((acc, e) => {
+      acc.kcal += Number(e.kcal) || 0;
+      acc.protein += Number(e.protein) || 0;
+      acc.fat += Number(e.fat) || 0;
+      acc.carb += Number(e.carb) || 0;
+      return acc;
+    }, { kcal:0, protein:0, fat:0, carb:0 });
+  }
+
+  function progressRowHtml(label, value, min, max, unit){
+    const pct = Math.max(4, Math.min(100, Math.round((value / max) * 100)));
+    let color = 'var(--teal)';
+    if(value > max) color = 'var(--danger)';
+    else if(value < min * 0.6) color = 'var(--muted)';
+    else if(value < min) color = 'var(--amber)';
+    return `
+      <div class="progress-row">
+        <div class="progress-head"><span>${label}</span><span class="val">${Math.round(value*10)/10} / ${min}-${max} ${unit}</span></div>
+        <div class="progress-track"><div class="progress-fill" style="width:${pct}%;background:${color};"></div></div>
+      </div>
+    `;
+  }
+
+  function renderFoodSummary(){
+    const t = computeDayTotals(selectedFoodDateKey);
+    const el = document.getElementById('foodSummaryCard');
+    el.innerHTML =
+      progressRowHtml('แคลอรี่', t.kcal, FOOD_GOAL.kcalMin, FOOD_GOAL.kcalMax, 'kcal') +
+      progressRowHtml('โปรตีน', t.protein, FOOD_GOAL.proteinMin, FOOD_GOAL.proteinMax, 'ก.') +
+      progressRowHtml('ไขมัน', t.fat, FOOD_GOAL.fatMin, FOOD_GOAL.fatMax, 'ก.') +
+      '<div class="section-sub" style="margin:8px 0 0;">คาร์บวันนี้: ' + (Math.round(t.carb*10)/10) + ' กรัม (ส่วนที่เหลือ ไม่ตั้งเป้าตายตัว)</div>';
+  }
+
+  function renderFoodQuickList(){
+    const el = document.getElementById('foodQuickList');
+    if(!foodCustom.length){
+      el.innerHTML = '<div class="empty-note">ยังไม่มีรายการโปรด — กด "นำเข้ารายการที่กินประจำ" หรือเพิ่มเอง</div>';
+      return;
+    }
+    el.innerHTML = foodCustom.map(f => `
+      <div class="card food-item">
+        <div>
+          <div class="food-item-name">${escapeHtml(f.name)}</div>
+          <div class="food-item-macros">${Math.round(f.kcal)} kcal · โปรตีน ${f.protein}g · ไขมัน ${f.fat}g · คาร์บ ${f.carb}g</div>
+        </div>
+        <div class="lib-actions">
+          <button class="log-save" data-food-quick-add="${f.id}">+ เพิ่ม</button>
+          <button class="icon-btn danger" data-food-quick-delete="${f.id}" title="ลบรายการโปรด">🗑</button>
+        </div>
+      </div>
+    `).join('');
+  }
+
+  document.getElementById('foodQuickSeedBtn').addEventListener('click', async () => {
+    const existingNames = new Set(foodCustom.map(f => f.name.trim().toLowerCase()));
+    let added = 0;
+    DEFAULT_FOODS.forEach(def => {
+      if(existingNames.has(def.name.trim().toLowerCase())) return;
+      foodCustom.push({ id: 'food' + Date.now() + '_' + added, name: def.name, kcal: def.kcal, protein: def.protein, fat: def.fat, carb: def.carb });
+      existingNames.add(def.name.trim().toLowerCase());
+      added++;
+    });
+    const msg = document.getElementById('foodQuickSeedMsg');
+    if(added === 0){
+      msg.textContent = 'มีรายการเหล่านี้อยู่ในรายการโปรดครบแล้ว ไม่มีอะไรเพิ่มใหม่';
+      msg.style.color = 'var(--muted)';
+    } else {
+      await saveFoodCustom();
+      renderFoodQuickList();
+      msg.textContent = 'เพิ่มรายการโปรดแล้ว ' + added + ' รายการ ✓';
+      msg.style.color = 'var(--teal)';
+    }
+    msg.style.display = 'block';
+    setTimeout(() => { msg.style.display = 'none'; }, 4000);
+  });
+
+  const foodQuickAddToggle = document.getElementById('foodQuickAddToggle');
+  const foodQuickAddForm = document.getElementById('foodQuickAddForm');
+  foodQuickAddToggle.addEventListener('click', () => {
+    const showing = foodQuickAddForm.style.display !== 'none';
+    foodQuickAddForm.style.display = showing ? 'none' : 'block';
+    if(!showing) document.getElementById('fqName').focus();
+  });
+  document.getElementById('foodQuickCancelBtn').addEventListener('click', () => {
+    foodQuickAddForm.style.display = 'none';
+  });
+  document.getElementById('foodQuickSaveBtn').addEventListener('click', async () => {
+    const name = document.getElementById('fqName').value.trim();
+    if(!name){ document.getElementById('fqName').focus(); return; }
+    const kcal = Number(document.getElementById('fqKcal').value) || 0;
+    const protein = Number(document.getElementById('fqProtein').value) || 0;
+    const fat = Number(document.getElementById('fqFat').value) || 0;
+    const carb = Number(document.getElementById('fqCarb').value) || 0;
+    foodCustom.push({ id: 'food' + Date.now(), name, kcal, protein, fat, carb });
+    await saveFoodCustom();
+    renderFoodQuickList();
+    ['fqName','fqKcal','fqProtein','fqFat','fqCarb'].forEach(id => document.getElementById(id).value = '');
+    foodQuickAddForm.style.display = 'none';
+  });
+
+  document.getElementById('foodQuickList').addEventListener('click', async (e) => {
+    const addBtn = e.target.closest('[data-food-quick-add]');
+    const delBtn = e.target.closest('[data-food-quick-delete]');
+    if(addBtn){
+      const f = foodCustom.find(x => x.id === addBtn.dataset.foodQuickAdd);
+      if(!f) return;
+      const entries = ensureFoodDay(selectedFoodDateKey);
+      entries.push({ id: 'entry' + Date.now(), mealType: '', desc: f.name, kcal: f.kcal, protein: f.protein, fat: f.fat, carb: f.carb });
+      await saveFoodLog();
+      renderFoodSummary();
+      renderFoodTodayList();
+      renderFoodHistory();
+    } else if(delBtn){
+      if(!confirm('ลบรายการโปรดนี้?')) return;
+      foodCustom = foodCustom.filter(x => x.id !== delBtn.dataset.foodQuickDelete);
+      await saveFoodCustom();
+      renderFoodQuickList();
+    }
+  });
+
+  document.getElementById('foodSaveBtn').addEventListener('click', async () => {
+    const desc = document.getElementById('foodDesc').value.trim();
+    if(!desc){ document.getElementById('foodDesc').focus(); return; }
+    const mealType = document.getElementById('foodMealType').value;
+    const kcal = Number(document.getElementById('foodKcal').value) || 0;
+    const protein = Number(document.getElementById('foodProtein').value) || 0;
+    const fat = Number(document.getElementById('foodFat').value) || 0;
+    const carb = Number(document.getElementById('foodCarb').value) || 0;
+    const entries = ensureFoodDay(selectedFoodDateKey);
+    entries.push({ id: 'entry' + Date.now(), mealType, desc, kcal, protein, fat, carb });
+    const ok = await saveFoodLog();
+    const msg = document.getElementById('foodSavedMsg');
+    msg.textContent = ok ? 'บันทึกแล้ว ✓' : 'บันทึกชั่วคราวเท่านั้น (จะหายถ้าปิดหน้านี้)';
+    msg.style.color = ok ? 'var(--teal)' : 'var(--amber)';
+    msg.style.display = 'inline';
+    setTimeout(() => { msg.style.display = 'none'; }, 3000);
+    document.getElementById('foodDesc').value = '';
+    document.getElementById('foodKcal').value = '';
+    document.getElementById('foodProtein').value = '';
+    document.getElementById('foodFat').value = '';
+    document.getElementById('foodCarb').value = '';
+    renderFoodSummary();
+    renderFoodTodayList();
+    renderFoodHistory();
+  });
+
+  function renderFoodTodayList(){
+    const entries = foodLog[selectedFoodDateKey] || [];
+    const el = document.getElementById('foodTodayList');
+    if(!entries.length){
+      el.innerHTML = '<div class="empty-note">ยังไม่มีบันทึกมื้ออาหารของวันนี้</div>';
+      return;
+    }
+    el.innerHTML = entries.map(e => `
+      <div class="card food-item">
+        <div>
+          ${e.mealType ? '<span class="tag">' + escapeHtml(e.mealType) + '</span>' : ''}
+          <div class="food-item-name" style="margin-top:4px;">${escapeHtml(e.desc)}</div>
+          <div class="food-item-macros">${Math.round(e.kcal)} kcal · โปรตีน ${e.protein}g · ไขมัน ${e.fat}g · คาร์บ ${e.carb}g</div>
+        </div>
+        <button class="icon-btn danger" data-food-delete="${e.id}" title="ลบมื้อนี้">🗑</button>
+      </div>
+    `).join('');
+  }
+
+  document.getElementById('foodTodayList').addEventListener('click', async (e) => {
+    const delBtn = e.target.closest('[data-food-delete]');
+    if(!delBtn) return;
+    const entries = ensureFoodDay(selectedFoodDateKey);
+    foodLog[selectedFoodDateKey] = entries.filter(x => x.id !== delBtn.dataset.foodDelete);
+    await saveFoodLog();
+    renderFoodSummary();
+    renderFoodTodayList();
+    renderFoodHistory();
+  });
+
+  function renderFoodHistory(){
+    const el = document.getElementById('foodHistoryList');
+    const dateKeys = Object.keys(foodLog)
+      .filter(k => k !== selectedFoodDateKey && foodLog[k] && foodLog[k].length)
+      .sort((a,b) => b.localeCompare(a));
+    if(!dateKeys.length){
+      el.innerHTML = '<div class="empty-note">ยังไม่มีประวัติวันอื่น</div>';
+      return;
+    }
+    el.innerHTML = dateKeys.map(k => {
+      const t = computeDayTotals(k);
+      const entries = foodLog[k];
+      return `
+        <div class="card accordion" data-accordion>
+          <div class="accordion-head" data-acc-toggle>
+            <h3>${formatDateKeyThai(k)}</h3>
+            <span class="accordion-arrow">▾</span>
+          </div>
+          <div class="accordion-body">
+            <div class="day-ex-line"><b>รวม:</b> ${Math.round(t.kcal)} kcal · โปรตีน ${Math.round(t.protein*10)/10}g · ไขมัน ${Math.round(t.fat*10)/10}g · คาร์บ ${Math.round(t.carb*10)/10}g</div>
+            ${entries.map(e => '<div class="day-ex-line" style="margin-top:6px;color:var(--muted);">' + (e.mealType ? '<b style="color:var(--ink);">' + escapeHtml(e.mealType) + '</b> — ' : '') + escapeHtml(e.desc) + ' (' + Math.round(e.kcal) + ' kcal)</div>').join('')}
+            <div style="margin-top:10px;">
+              <button class="icon-btn danger" data-food-delete-day="${k}">🗑 ลบทั้งวัน</button>
+            </div>
+          </div>
+        </div>
+      `;
+    }).join('');
+  }
+
+  document.getElementById('foodHistoryList').addEventListener('click', async (e) => {
+    const delBtn = e.target.closest('[data-food-delete-day]');
+    if(!delBtn) return;
+    if(!confirm('ลบบันทึกอาหารวันที่ ' + formatDateKeyThai(delBtn.dataset.foodDeleteDay) + ' ทั้งหมด?')) return;
+    delete foodLog[delBtn.dataset.foodDeleteDay];
+    await saveFoodLog();
+    renderFoodHistory();
+  });
+
+  // ==================================================================
   // EXPORT TO EXCEL
   // ==================================================================
   const exportBtn = document.getElementById('exportBtn');
@@ -1739,19 +2124,30 @@
       .sort((a,b) => new Date(a.date) - new Date(b.date))
       .forEach(e => injuryRows.push([thaiDateTime(e.date), e.bodypart || '', e.severity || '', e.note || '']));
 
+    // Sheet 5: บันทึกอาหาร
+    const foodRows = [['วันที่', 'มื้อ', 'รายการอาหาร', 'แคลอรี่ (kcal)', 'โปรตีน (ก.)', 'ไขมัน (ก.)', 'คาร์บ (ก.)']];
+    Object.keys(foodLog).sort((a,b) => a.localeCompare(b)).forEach(dateKey => {
+      (foodLog[dateKey] || []).forEach(e => {
+        foodRows.push([formatDateKeyThai(dateKey), e.mealType || '', e.desc || '', e.kcal || 0, e.protein || 0, e.fat || 0, e.carb || 0]);
+      });
+    });
+
     const wb = XLSX.utils.book_new();
     const ws1 = XLSX.utils.aoa_to_sheet(libRows);
     const ws2 = XLSX.utils.aoa_to_sheet(exRows);
     const ws3 = XLSX.utils.aoa_to_sheet(dayRows);
     const ws4 = XLSX.utils.aoa_to_sheet(injuryRows);
+    const ws5 = XLSX.utils.aoa_to_sheet(foodRows);
     ws1['!cols'] = [{wch:22},{wch:40},{wch:14}];
     ws2['!cols'] = [{wch:16},{wch:22},{wch:14},{wch:8},{wch:8},{wch:12},{wch:10},{wch:30}];
     ws3['!cols'] = [{wch:16},{wch:14},{wch:12},{wch:12},{wch:22},{wch:30},{wch:14},{wch:12},{wch:12},{wch:30}];
     ws4['!cols'] = [{wch:20},{wch:18},{wch:14},{wch:40}];
+    ws5['!cols'] = [{wch:16},{wch:12},{wch:36},{wch:14},{wch:12},{wch:12},{wch:12}];
     XLSX.utils.book_append_sheet(wb, ws1, 'คลังท่า');
     XLSX.utils.book_append_sheet(wb, ws2, 'ท่าที่เล่น');
     XLSX.utils.book_append_sheet(wb, ws3, 'เช็คอิน-สรุป');
     XLSX.utils.book_append_sheet(wb, ws4, 'บันทึกอาการ');
+    XLSX.utils.book_append_sheet(wb, ws5, 'บันทึกอาหาร');
 
     const fileDate = new Date().toISOString().slice(0,10);
     XLSX.writeFile(wb, 'fitness-log-' + fileDate + '.xlsx');
@@ -1776,6 +2172,11 @@
     const rawDays = await tryGet('workout-days');
     try{ workoutDays = rawDays ? JSON.parse(rawDays) : {}; }catch(e){ workoutDays = {}; }
 
+    const rawFoodLog = await tryGet('food-log');
+    try{ foodLog = rawFoodLog ? JSON.parse(rawFoodLog) : {}; }catch(e){ foodLog = {}; }
+    const rawFoodCustom = await tryGet('food-custom');
+    try{ foodCustom = rawFoodCustom ? JSON.parse(rawFoodCustom) : []; }catch(e){ foodCustom = []; }
+
     renderLibrary();
     renderCheckinForm();
     renderTodayExercises();
@@ -1784,6 +2185,11 @@
     populateChartExSelect();
     drawFreqChart();
     drawWaistChart();
+
+    renderFoodQuickList();
+    renderFoodSummary();
+    renderFoodTodayList();
+    renderFoodHistory();
 
     await loadInjuryLog();
   })();
