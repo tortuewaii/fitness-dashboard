@@ -836,6 +836,7 @@
         </div>
       </div>
 
+      <input type="text" id="foodQuickSearch" placeholder="🔍 ค้นหาชื่ออาหารในรายการโปรด..." style="width:100%;padding:10px 12px;border-radius:8px;border:1px solid var(--line);background:var(--bg);color:var(--ink);font-size:14px;font-family:inherit;margin-bottom:12px;box-sizing:border-box;">
       <div id="foodQuickList"></div>
     </section>
 
@@ -1800,9 +1801,10 @@
 
   const DEFAULT_FOODS = [
     { name:'ไข่ต้ม 1 ฟอง', kcal:65, protein:6.5, fat:4.5, carb:0.5 },
-    { name:'น้ำเต้าหู้ไม่หวาน 1 แก้ว (~250 มล.)', kcal:35, protein:7, fat:1, carb:1 },
-    { name:'โยเกิร์ตธรรมดา 200 กรัม', kcal:120, protein:10, fat:5, carb:10 },
+    { name:'น้ำเต้าหู้หวานปกติ 1 แก้ว (~250 มล.)', kcal:70, protein:3.5, fat:1.5, carb:10 },
+    { name:'โยเกิร์ตธรรมดา 200 กรัม + น้ำผึ้ง 1 ช้อนโต๊ะ', kcal:184, protein:10, fat:5, carb:27 },
     { name:'ข้าวขาว 1 ทัพพี (~100 กรัมสุก)', kcal:130, protein:2, fat:0, carb:29 },
+    { name:'ข้าวขาว 1.5 ทัพพี (~150 กรัมสุก)', kcal:195, protein:3, fat:0, carb:43 },
     { name:'กะเพราหมูสับทำเอง 200 กรัม (ไม่รวมข้าว)', kcal:545, protein:38, fat:41, carb:3 }
   ];
 
@@ -1882,13 +1884,22 @@
       '<div class="section-sub" style="margin:8px 0 0;">คาร์บวันนี้: ' + (Math.round(t.carb*10)/10) + ' กรัม (ส่วนที่เหลือ ไม่ตั้งเป้าตายตัว)</div>';
   }
 
+  let foodQuickSearchTerm = '';
+
   function renderFoodQuickList(){
     const el = document.getElementById('foodQuickList');
+    const term = foodQuickSearchTerm.trim().toLowerCase();
+    const list = term ? foodCustom.filter(f => f.name.toLowerCase().includes(term)) : foodCustom;
+
     if(!foodCustom.length){
       el.innerHTML = '<div class="empty-note">ยังไม่มีรายการโปรด — กด "นำเข้ารายการที่กินประจำ" หรือเพิ่มเอง</div>';
       return;
     }
-    el.innerHTML = foodCustom.map(f => `
+    if(!list.length){
+      el.innerHTML = '<div class="empty-note">ไม่พบรายการที่ตรงกับ "' + escapeHtml(foodQuickSearchTerm) + '"</div>';
+      return;
+    }
+    el.innerHTML = list.map(f => `
       <div class="card food-item">
         <div>
           <div class="food-item-name">${escapeHtml(f.name)}</div>
@@ -1901,6 +1912,11 @@
       </div>
     `).join('');
   }
+
+  document.getElementById('foodQuickSearch').addEventListener('input', (e) => {
+    foodQuickSearchTerm = e.target.value;
+    renderFoodQuickList();
+  });
 
   document.getElementById('foodQuickSeedBtn').addEventListener('click', async () => {
     const existingNames = new Set(foodCustom.map(f => f.name.trim().toLowerCase()));
