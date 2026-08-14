@@ -274,6 +274,41 @@
   .food-item-macros{font-size:12.5px;color:var(--muted);margin-top:4px;}
   .food-row-inline{display:flex;gap:8px;}
   .food-row-inline > div{flex:1;}
+
+  /* ---- rest timer (floating) ---- */
+  #restTimerWidget{
+    position:fixed;right:16px;bottom:16px;z-index:999;
+    font-family:inherit;
+  }
+  #restTimerToggle{
+    width:56px;height:56px;border-radius:50%;border:none;
+    background:var(--teal);color:#0c1512;font-size:22px;
+    box-shadow:0 4px 14px rgba(0,0,0,0.4);cursor:pointer;
+    display:flex;align-items:center;justify-content:center;
+  }
+  #restTimerPanel{
+    display:none;position:absolute;right:0;bottom:66px;
+    width:220px;background:var(--card);border:1px solid var(--line);
+    border-radius:14px;padding:16px;box-shadow:0 8px 24px rgba(0,0,0,0.5);
+  }
+  #restTimerPanel.open{display:block;}
+  #restTimerDisplay{
+    font-size:34px;font-weight:700;text-align:center;letter-spacing:1px;
+    margin-bottom:10px;color:var(--ink);font-variant-numeric:tabular-nums;
+  }
+  #restTimerDisplay.flash{color:var(--teal);}
+  .rt-presets{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:10px;}
+  .rt-preset-btn{
+    padding:8px 4px;border-radius:8px;border:1px solid var(--line);
+    background:var(--bg);color:var(--ink);font-size:13px;cursor:pointer;font-family:inherit;
+  }
+  .rt-preset-btn:active{background:rgba(95,168,160,0.15);}
+  .rt-controls{display:flex;gap:6px;}
+  .rt-controls button{
+    flex:1;padding:9px 4px;border-radius:8px;border:1px solid var(--line);
+    background:var(--bg);color:var(--ink);font-size:13px;cursor:pointer;font-family:inherit;
+  }
+  .rt-controls button.primary{background:var(--teal);color:#0c1512;border-color:var(--teal);font-weight:600;}
 </style>
 </head>
 <body>
@@ -884,6 +919,24 @@
   </div>
 
 </main>
+
+<div id="restTimerWidget">
+  <div id="restTimerPanel">
+    <div id="restTimerDisplay">01:30</div>
+    <div class="rt-presets">
+      <button class="rt-preset-btn" data-rt-preset="30">30 วิ</button>
+      <button class="rt-preset-btn" data-rt-preset="45">45 วิ</button>
+      <button class="rt-preset-btn" data-rt-preset="60">60 วิ</button>
+      <button class="rt-preset-btn" data-rt-preset="90">90 วิ</button>
+      <button class="rt-preset-btn" data-rt-preset="120">120 วิ</button>
+    </div>
+    <div class="rt-controls">
+      <button id="rtStartBtn" class="primary">เริ่ม</button>
+      <button id="rtResetBtn">รีเซ็ต</button>
+    </div>
+  </div>
+  <button id="restTimerToggle" title="จับเวลาพักระหว่างเซ็ต">⏱</button>
+</div>
 
 <script>
   // ---------- Tabs ----------
@@ -1790,6 +1843,126 @@
     document.getElementById('injBodypart').value = '';
     document.getElementById('injNote').value = '';
     renderInjuryList(entries);
+  });
+
+  // ==================================================================
+  // REST TIMER (floating, ใช้ได้ทุกแท็บ)
+  // ==================================================================
+  let rtRemaining = 90;   // วินาที
+  let rtDefault = 90;
+  let rtInterval = null;
+  let rtRunning = false;
+  let rtAudioCtx = null;
+
+  function getRtAudioCtx(){
+    if(!rtAudioCtx){
+      try{ rtAudioCtx = new (window.AudioContext || window.webkitAudioContext)(); }catch(e){ rtAudioCtx = null; }
+    } else if(rtAudioCtx.state === 'suspended'){
+      rtAudioCtx.resume();
+    }
+    return rtAudioCtx;
+  }
+
+  const rtWidget = document.getElementById('restTimerWidget');
+  const rtToggle = document.getElementById('restTimerToggle');
+  const rtPanel = document.getElementById('restTimerPanel');
+  const rtDisplay = document.getElementById('restTimerDisplay');
+  const rtStartBtn = document.getElementById('rtStartBtn');
+  const rtResetBtn = document.getElementById('rtResetBtn');
+
+  function fmtTime(sec){
+    const s = Math.max(0, Math.round(sec));
+    const m = Math.floor(s / 60);
+    const r = s % 60;
+    return String(m).padStart(2,'0') + ':' + String(r).padStart(2,'0');
+  }
+
+  function renderRt(){
+    rtDisplay.textContent = fmtTime(rtRemaining);
+  }
+  renderRt();
+
+  rtToggle.addEventListener('click', () => {
+    rtPanel.classList.toggle('open');
+  });
+
+  document.querySelectorAll('[data-rt-preset]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      clearInterval(rtInterval);
+      rtRunning = false;
+      rtDefault = Number(btn.dataset.rtPreset);
+      rtRemaining = rtDefault;
+      rtStartBtn.textContent = 'เริ่ม';
+      renderRt();
+    });
+  });
+
+  function playRtBeep(){
+    const ctx = getRtAudioCtx();
+    if(ctx){
+      try{
+        [0, 0.18, 0.36].forEach(delay => {
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc.type = 'sine';
+          osc.frequency.value = 880;
+          gain.gain.setValueAtTime(0.0001, ctx.currentTime + delay);
+          gain.gain.exponentialRampToValueAtTime(0.3, ctx.currentTime + delay + 0.01);
+          gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + delay + 0.15);
+          osc.connect(gain).connect(ctx.destination);
+          osc.start(ctx.currentTime + delay);
+          osc.stop(ctx.currentTime + delay + 0.16);
+        });
+      }catch(e){ /* เสียงเล่นไม่ได้ก็ไม่เป็นไร ยังสั่นได้ */ }
+    }
+    if(navigator.vibrate) navigator.vibrate([200,100,200,100,200]);
+  }
+
+  function rtFinish(){
+    clearInterval(rtInterval);
+    rtRunning = false;
+    rtRemaining = 0;
+    renderRt();
+    rtDisplay.classList.add('flash');
+    playRtBeep();
+    rtPanel.classList.add('open');
+    setTimeout(() => {
+      rtDisplay.classList.remove('flash');
+      rtRemaining = rtDefault;
+      renderRt();
+      rtStartBtn.textContent = 'เริ่ม';
+    }, 2000);
+  }
+
+  function rtTick(){
+    rtRemaining -= 1;
+    if(rtRemaining <= 0){
+      rtFinish();
+    } else {
+      renderRt();
+    }
+  }
+
+  rtStartBtn.addEventListener('click', () => {
+    getRtAudioCtx();
+    if(rtRunning){
+      clearInterval(rtInterval);
+      rtRunning = false;
+      rtStartBtn.textContent = 'เริ่ม';
+    } else {
+      if(rtRemaining <= 0) rtRemaining = rtDefault;
+      rtRunning = true;
+      rtStartBtn.textContent = 'หยุดชั่วคราว';
+      rtInterval = setInterval(rtTick, 1000);
+    }
+  });
+
+  rtResetBtn.addEventListener('click', () => {
+    clearInterval(rtInterval);
+    rtRunning = false;
+    rtRemaining = rtDefault;
+    rtStartBtn.textContent = 'เริ่ม';
+    renderRt();
   });
 
   // ==================================================================
