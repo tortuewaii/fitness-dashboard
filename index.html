@@ -1049,7 +1049,8 @@
     // กิจกรรมแบบไม่มีเซ็ต
     { name: 'ตีแบด', desc: '', unit: 'session' },
     { name: 'ว่ายน้ำ', desc: '', unit: 'session' },
-    { name: 'พิลาทิส', desc: '', unit: 'session' }
+    { name: 'พิลาทิส', desc: '', unit: 'session' },
+    { name: 'เดิน (คาร์ดิโอ)', desc: 'เดินสวน/ลู่วิ่ง — ใส่ระยะทาง/เวลา/HR ในโน้ต', unit: 'session' }
   ];
 
   function renderLibrary(){
@@ -2381,6 +2382,16 @@
         }
       });
       if(changed) saveWorkoutDays();
+    })();
+
+    // one-time patch: add "เดิน (คาร์ดิโอ)" to library if it was already seeded before this update
+    (function patchAddWalkingExercise(){
+      const hasWalking = exLibrary.some(ex => ex.name === 'เดิน (คาร์ดิโอ)');
+      const hasSeeded = exLibrary.length > 0; // library was seeded at some point
+      if(hasSeeded && !hasWalking){
+        exLibrary.push({ name: 'เดิน (คาร์ดิโอ)', desc: 'เดินสวน/ลู่วิ่ง — ใส่ระยะทาง/เวลา/HR ในโน้ต', unit: 'session', id: 'walk-' + Date.now() });
+        saveLibrary();
+      }
     })();
 
     const rawFoodLog = await tryGet('food-log');
