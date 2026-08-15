@@ -735,8 +735,14 @@
 
     <section>
       <div class="section-label">สรุปหลังออกกำลังกาย</div>
+      <div class="section-sub">ถ้าวันนี้เล่นหลายกิจกรรม (เช่น เวท + คาร์ดิโอ) บันทึกแยกทีละกิจกรรมได้ ใส่ชื่อกิจกรรมกันสับสน แล้วกด "เพิ่มสรุปนี้" ทีละอัน</div>
+      <div id="todaySummaryList"></div>
       <div class="card">
         <div class="injury-form">
+          <div>
+            <label>ชื่อกิจกรรม (ถ้ามีมากกว่า 1 อย่างในวันนี้)</label>
+            <input type="text" id="sumLabel" placeholder="เช่น เวท, เดินสวน, ว่ายน้ำ">
+          </div>
           <div>
             <label>ระยะเวลา (นาที)</label>
             <input type="number" id="sumDuration" placeholder="เช่น 45">
@@ -753,7 +759,7 @@
             <label>บันทึกสรุป (จากที่ Claude วิเคราะห์ภาพ smart watch หรือความรู้สึกตัวเอง)</label>
             <textarea id="sumNote" placeholder="วางสรุปตรงนี้ได้เลย"></textarea>
           </div>
-          <button class="injury-save-btn" id="sumSaveBtn">บันทึกสรุป</button>
+          <button class="injury-save-btn" id="sumSaveBtn">+ เพิ่มสรุปนี้</button>
           <span class="log-saved-msg" id="sumSavedMsg"></span>
         </div>
       </div>
@@ -1187,9 +1193,10 @@
         date: dateKey,
         checkin: { sleep:'', energy:'', soreness:[], waist:'', note:'' },
         exercises: [],
-        summary: { duration:'', hrAvg:'', hrMax:'', note:'' }
+        summaries: []
       };
     }
+    if(!Array.isArray(workoutDays[dateKey].summaries)) workoutDays[dateKey].summaries = [];
     return workoutDays[dateKey];
   }
   function ensureTodayEntry(){ return ensureEntryForDate(selectedDateKey); }
@@ -1468,26 +1475,72 @@
     drawWeightChart();
   });
 
-  // ---- Post-workout summary ----
-  function renderSummaryForm(){
+  // ---- Post-workout summary (supports multiple activities per day) ----
+  function renderSummaryList(){
     const entry = ensureTodayEntry();
-    document.getElementById('sumDuration').value = entry.summary.duration || '';
-    document.getElementById('sumHrAvg').value = entry.summary.hrAvg || '';
-    document.getElementById('sumHrMax').value = entry.summary.hrMax || '';
-    document.getElementById('sumNote').value = entry.summary.note || '';
+    const el = document.getElementById('todaySummaryList');
+    if(!entry.summaries.length){
+      el.innerHTML = '';
+      return;
+    }
+    el.innerHTML = entry.summaries.map((s, idx) => {
+      const bits = [];
+      if(s.duration) bits.push(s.duration + ' นาที');
+      if(s.hrAvg) bits.push('HR เฉลี่ย ' + s.hrAvg);
+      if(s.hrMax) bits.push('HR สูงสุด ' + s.hrMax);
+      return `
+      <div class="card">
+        <div class="ex-log-head">
+          <div class="ex-name">${escapeHtml(s.label || 'กิจกรรม ' + (idx+1))}</div>
+          <button class="icon-btn danger" data-remove-summary="${idx}" title="ลบสรุปนี้">🗑</button>
+        </div>
+        ${bits.length ? '<div class="day-ex-line">' + escapeHtml(bits.join(' · ')) + '</div>' : ''}
+        ${s.note ? '<div class="day-ex-line" style="color:var(--muted);">' + escapeHtml(s.note) + '</div>' : ''}
+      </div>`;
+    }).join('');
+  }
+  document.getElementById('todaySummaryList').addEventListener('click', async (e) => {
+    const rmBtn = e.target.closest('[data-remove-summary]');
+    if(!rmBtn) return;
+    const entry = ensureTodayEntry();
+    entry.summaries.splice(Number(rmBtn.dataset.removeSummary), 1);
+    await saveWorkoutDays();
+    renderSummaryList();
+    renderHistory();
+    drawFreqChart();
+    drawWaistChart();
+  });
+  function renderSummaryForm(){
+    renderSummaryList();
+    document.getElementById('sumLabel').value = '';
+    document.getElementById('sumDuration').value = '';
+    document.getElementById('sumHrAvg').value = '';
+    document.getElementById('sumHrMax').value = '';
+    document.getElementById('sumNote').value = '';
   }
   document.getElementById('sumSaveBtn').addEventListener('click', async () => {
     const entry = ensureTodayEntry();
-    entry.summary.duration = document.getElementById('sumDuration').value;
-    entry.summary.hrAvg = document.getElementById('sumHrAvg').value;
-    entry.summary.hrMax = document.getElementById('sumHrMax').value;
-    entry.summary.note = document.getElementById('sumNote').value.trim();
+    const newSummary = {
+      label: document.getElementById('sumLabel').value.trim(),
+      duration: document.getElementById('sumDuration').value,
+      hrAvg: document.getElementById('sumHrAvg').value,
+      hrMax: document.getElementById('sumHrMax').value,
+      note: document.getElementById('sumNote').value.trim()
+    };
+    const msg = document.getElementById('sumSavedMsg');
+    if(!newSummary.duration && !newSummary.hrAvg && !newSummary.hrMax && !newSummary.note){
+      msg.textContent = 'กรอกข้อมูลอย่างน้อย 1 ช่องก่อนบันทึกนะคะ';
+      msg.style.color = 'var(--amber)';
+      msg.style.display = 'inline';
+      setTimeout(() => { msg.style.display = 'none'; }, 3000);
+      return;
+    }
+    entry.summaries.push(newSummary);
     const ok = await saveWorkoutDays();
     const verify = await tryGet('workout-days');
-    const persisted = ok && verify && JSON.parse(verify)[selectedDateKey] && JSON.parse(verify)[selectedDateKey].summary.duration === entry.summary.duration;
-    const msg = document.getElementById('sumSavedMsg');
+    const persisted = ok && verify && JSON.parse(verify)[selectedDateKey] && JSON.parse(verify)[selectedDateKey].summaries.length === entry.summaries.length;
     if(persisted){
-      msg.textContent = 'บันทึกแล้ว ✓ (' + (entry.summary.duration || '-') + ' นาที, HR เฉลี่ย ' + (entry.summary.hrAvg || '-') + ')';
+      msg.textContent = 'เพิ่มสรุปแล้ว ✓ (' + (newSummary.label || 'กิจกรรมนี้') + ' — ' + (newSummary.duration || '-') + ' นาที, HR เฉลี่ย ' + (newSummary.hrAvg || '-') + ') กรอกกิจกรรมถัดไปได้เลย';
       msg.style.color = 'var(--teal)';
     } else {
       msg.textContent = 'บันทึกชั่วคราวเท่านั้น (จะหายถ้าปิดหน้านี้) — เครื่องนี้อาจบล็อกการจัดเก็บถาวร';
@@ -1495,6 +1548,12 @@
     }
     msg.style.display = 'inline';
     setTimeout(() => { msg.style.display = 'none'; }, 5000);
+    document.getElementById('sumLabel').value = '';
+    document.getElementById('sumDuration').value = '';
+    document.getElementById('sumHrAvg').value = '';
+    document.getElementById('sumHrMax').value = '';
+    document.getElementById('sumNote').value = '';
+    renderSummaryList();
     renderHistory();
     drawFreqChart();
     drawWaistChart();
@@ -1533,16 +1592,18 @@
       });
       html += '</div>';
     }
-    const sum = d.summary || {};
-    if(sum.duration || sum.hrAvg || sum.hrMax || sum.note){
-      html += '<div class="day-block"><div class="day-block-title">สรุป</div>';
-      const sumBits = [];
-      if(sum.duration) sumBits.push(sum.duration + ' นาที');
-      if(sum.hrAvg) sumBits.push('HR เฉลี่ย ' + sum.hrAvg);
-      if(sum.hrMax) sumBits.push('HR สูงสุด ' + sum.hrMax);
-      if(sumBits.length) html += '<div class="day-ex-line">' + escapeHtml(sumBits.join(' · ')) + '</div>';
-      if(sum.note) html += '<div class="day-ex-line" style="color:var(--muted);">' + escapeHtml(sum.note) + '</div>';
-      html += '</div>';
+    const summaries = d.summaries || [];
+    if(summaries.length){
+      summaries.forEach(sum => {
+        html += '<div class="day-block"><div class="day-block-title">สรุป' + (sum.label ? ' — ' + escapeHtml(sum.label) : '') + '</div>';
+        const sumBits = [];
+        if(sum.duration) sumBits.push(sum.duration + ' นาที');
+        if(sum.hrAvg) sumBits.push('HR เฉลี่ย ' + sum.hrAvg);
+        if(sum.hrMax) sumBits.push('HR สูงสุด ' + sum.hrMax);
+        if(sumBits.length) html += '<div class="day-ex-line">' + escapeHtml(sumBits.join(' · ')) + '</div>';
+        if(sum.note) html += '<div class="day-ex-line" style="color:var(--muted);">' + escapeHtml(sum.note) + '</div>';
+        html += '</div>';
+      });
     }
     if(!html) html = '<div class="empty-note">ยังไม่มีข้อมูลวันนี้</div>';
     return html;
@@ -1551,7 +1612,7 @@
   function renderHistory(){
     const el = document.getElementById('historyList');
     const days = Object.values(workoutDays)
-      .filter(d => (d.exercises && d.exercises.length) || d.checkin.sleep || d.checkin.note || d.summary.note)
+      .filter(d => (d.exercises && d.exercises.length) || d.checkin.sleep || d.checkin.note || (d.summaries && d.summaries.length))
       .sort((a,b) => b.date.localeCompare(a.date));
     if(!days.length){
       el.innerHTML = '<div class="empty-note">ยังไม่มีประวัติวันอื่น</div>';
@@ -2299,15 +2360,22 @@
       });
     });
 
-    // Sheet 3: เช็คอิน + สรุปรายวัน
-    const dayRows = [['วันที่', 'การนอน', 'พลังงาน', 'รอบเอว (นิ้ว)', 'จุดที่ล้า/ตึง', 'บันทึกเช็คอิน', 'ระยะเวลา (นาที)', 'HR เฉลี่ย', 'HR สูงสุด', 'บันทึกสรุปหลังออกกำลังกาย']];
+    // Sheet 3: เช็คอิน + สรุปรายวัน (แยกแถวตามกิจกรรม ถ้ามีหลายกิจกรรมต่อวัน)
+    const dayRows = [['วันที่', 'การนอน', 'พลังงาน', 'รอบเอว (นิ้ว)', 'จุดที่ล้า/ตึง', 'บันทึกเช็คอิน', 'กิจกรรม', 'ระยะเวลา (นาที)', 'HR เฉลี่ย', 'HR สูงสุด', 'บันทึกสรุปหลังออกกำลังกาย']];
     Object.values(workoutDays).sort((a,b) => a.date.localeCompare(b.date)).forEach(d => {
-      dayRows.push([
+      const checkinCols = [
         formatDateKeyThai(d.date),
         d.checkin.sleep || '', d.checkin.energy || '', d.checkin.waist || '',
-        (d.checkin.soreness || []).join(', '), d.checkin.note || '',
-        d.summary.duration || '', d.summary.hrAvg || '', d.summary.hrMax || '', d.summary.note || ''
-      ]);
+        (d.checkin.soreness || []).join(', '), d.checkin.note || ''
+      ];
+      const summaries = d.summaries || [];
+      if(!summaries.length){
+        dayRows.push([...checkinCols, '', '', '', '', '']);
+      } else {
+        summaries.forEach(s => {
+          dayRows.push([...checkinCols, s.label || '', s.duration || '', s.hrAvg || '', s.hrMax || '', s.note || '']);
+        });
+      }
     });
 
 
@@ -2335,7 +2403,7 @@
     const ws5 = XLSX.utils.aoa_to_sheet(foodRows);
     ws1['!cols'] = [{wch:22},{wch:40},{wch:14}];
     ws2['!cols'] = [{wch:16},{wch:22},{wch:14},{wch:8},{wch:8},{wch:12},{wch:10},{wch:30}];
-    ws3['!cols'] = [{wch:16},{wch:14},{wch:12},{wch:12},{wch:22},{wch:30},{wch:14},{wch:12},{wch:12},{wch:30}];
+    ws3['!cols'] = [{wch:16},{wch:14},{wch:12},{wch:12},{wch:22},{wch:30},{wch:14},{wch:14},{wch:12},{wch:12},{wch:30}];
     ws4['!cols'] = [{wch:20},{wch:18},{wch:14},{wch:40}];
     ws5['!cols'] = [{wch:16},{wch:12},{wch:36},{wch:14},{wch:12},{wch:12},{wch:12}];
     XLSX.utils.book_append_sheet(wb, ws1, 'คลังท่า');
@@ -2366,6 +2434,22 @@
 
     const rawDays = await tryGet('workout-days');
     try{ workoutDays = rawDays ? JSON.parse(rawDays) : {}; }catch(e){ workoutDays = {}; }
+
+    // one-time migration: old single "summary" object per day → new "summaries" array
+    // (supports logging multiple separate activities per day, e.g. เวท + คาร์ดิโอ)
+    (function migrateSummariesToArray(){
+      let changed = false;
+      Object.values(workoutDays).forEach(d => {
+        if(!Array.isArray(d.summaries)){
+          const old = d.summary;
+          d.summaries = (old && (old.duration || old.hrAvg || old.hrMax || old.note))
+            ? [{ label:'', duration: old.duration||'', hrAvg: old.hrAvg||'', hrMax: old.hrMax||'', note: old.note||'' }]
+            : [];
+          changed = true;
+        }
+      });
+      if(changed) saveWorkoutDays();
+    })();
 
     // one-time patch: fill in Lat Pulldown sets for 14 ส.ค. 69 that were saved empty
     (function patchLatPulldown0814(){
