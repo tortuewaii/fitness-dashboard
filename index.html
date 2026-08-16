@@ -877,12 +877,20 @@
         </div>
       </div>
 
-      <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;">
-        <label style="font-size:13px;color:var(--muted);white-space:nowrap;">มื้อที่จะเพิ่ม:</label>
-        <select id="foodQuickMealType" style="flex:1;padding:9px 10px;border-radius:8px;border:1px solid var(--line);background:var(--bg);color:var(--ink);font-size:14px;font-family:inherit;"></select>
+      <div class="card accordion open" data-accordion>
+        <div class="accordion-head" data-acc-toggle>
+          <h3>รายการทั้งหมด (แตะเพื่อหุบ/กาง)</h3>
+          <span class="accordion-arrow">▾</span>
+        </div>
+        <div class="accordion-body">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;">
+            <label style="font-size:13px;color:var(--muted);white-space:nowrap;">มื้อที่จะเพิ่ม:</label>
+            <select id="foodQuickMealType" style="flex:1;padding:9px 10px;border-radius:8px;border:1px solid var(--line);background:var(--bg);color:var(--ink);font-size:14px;font-family:inherit;"></select>
+          </div>
+          <input type="text" id="foodQuickSearch" placeholder="🔍 ค้นหาชื่ออาหารในรายการโปรด..." style="width:100%;padding:10px 12px;border-radius:8px;border:1px solid var(--line);background:var(--bg);color:var(--ink);font-size:14px;font-family:inherit;margin-bottom:12px;box-sizing:border-box;">
+          <div id="foodQuickList"></div>
+        </div>
       </div>
-      <input type="text" id="foodQuickSearch" placeholder="🔍 ค้นหาชื่ออาหารในรายการโปรด..." style="width:100%;padding:10px 12px;border-radius:8px;border:1px solid var(--line);background:var(--bg);color:var(--ink);font-size:14px;font-family:inherit;margin-bottom:12px;box-sizing:border-box;">
-      <div id="foodQuickList"></div>
     </section>
 
     <section>
